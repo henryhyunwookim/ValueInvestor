@@ -3,6 +3,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pandas as pd
+from openpyxl import load_workbook
 from numpy import asarray
 from collections import defaultdict
 from PIL import Image
@@ -92,3 +93,15 @@ def get_image_shape(array_dict):
                     image_shape = image_array.shape
                     print(f"Image shape: {image_shape}")
     return image_shape
+
+
+def load_dataframes(file_path, full_sheet_names):
+    data_dfs = {}
+    wb = load_workbook(file_path)
+    sheet_names = wb.sheetnames
+    for full_sheet_name, sheet_name in zip(full_sheet_names, sheet_names):
+        sheet= wb[sheet_name]
+        data = [[cell.value for cell in row] for row in sheet.iter_rows()]
+        data_dfs[full_sheet_name] = pd.DataFrame(data[1:-1], columns=data[0])
+
+    return data_dfs
