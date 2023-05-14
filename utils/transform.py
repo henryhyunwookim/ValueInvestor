@@ -104,3 +104,12 @@ def update_ranks(y_train_updated, y_test_updated, ideal_candidates):
             print(f"Candidate {id} not found!")
 
     return y_train_updated, y_test_updated
+
+
+def convert_vol_to_float(string):
+    if string == '-':
+        return np.nan
+    elif "M" in string:
+        return float(string.split("M")[0]) * 1000000
+    elif "K" in string:
+        return float(string.split("K")[0]) * 1000
