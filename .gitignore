@@ -161,3 +161,6 @@ cython_debug/
 
 # data folder
 data/
+
+# notebook folder
+notebooks/
