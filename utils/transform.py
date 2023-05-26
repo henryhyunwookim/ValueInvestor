@@ -5,6 +5,8 @@ from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.preprocessing import StandardScaler
 
+from statsmodels.tsa.seasonal import seasonal_decompose
+
 
 def pivot_data(data, target, binary_target_value=None):
     X_original = data.drop([target], axis=1)
@@ -32,10 +34,17 @@ def resample_data(X_train, y_train, method, random_state=None):
     return X_train_balanced, y_train_balanced
 
 
-def normalize_data(X_train, X_test, method="standard"):
-    scaler = StandardScaler()
-    X_train_normalized = scaler.fit_transform(X_train)
-    X_test_normalized = scaler.transform(X_test)
+def normalize_scale(X_train, X_test, method="standard", exclude_column=None):
+    if method == "standard":
+        scaler = StandardScaler()
+    X_train_normalized = pd.DataFrame(scaler.fit_transform(X_train),
+                                      index=X_train.index, columns=X_train.columns)
+    X_test_normalized = pd.DataFrame(scaler.transform(X_test),
+                                     index=X_test.index, columns=X_test.columns)
+    
+    if exclude_column != None:
+        X_train_normalized[exclude_column] = X_train[exclude_column]
+        X_test_normalized[exclude_column] = X_test[exclude_column]
 
     return X_train_normalized, X_test_normalized
 
@@ -113,3 +122,33 @@ def convert_vol_to_float(string):
         return float(string.split("M")[0]) * 1000000
     elif "K" in string:
         return float(string.split("K")[0]) * 1000
+    
+
+def add_moving_average(df):
+    weekly_window = 7
+    monthly_window = int(365/12)
+    quarterly_window = int(365/4)
+
+    df['Weekly SMA'] = df['Close'].rolling(window=weekly_window).mean()
+    df['Monthly SMA'] = df['Close'].rolling(window=monthly_window).mean()
+    df['Quarterly SMA'] = df['Close'].rolling(window=quarterly_window).mean()
+
+    df['Weekly EMA'] = df['Close'].ewm(span=weekly_window).mean()
+    df['Monthly EMA'] = df['Close'].ewm(span=monthly_window).mean()
+    df['Quarterly EMA'] = df['Close'].ewm(span=quarterly_window).mean()
+
+    return df
+
+
+def decompose_timeseries(df, frequency, column, add_to_df=True, plot=True):    
+    result = seasonal_decompose(df.asfreq(frequency).ffill()[[column]])
+
+    if plot:
+        result.plot()
+
+    if add_to_df:
+        df['Trend'] = result.trend
+        df['Seasonal'] = result.seasonal
+        df['Residual'] = result.resid
+
+        return df
