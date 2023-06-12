@@ -8,15 +8,14 @@ import seaborn as sns
 def plot_histograms(data,
                     target, target_figsize,
                     dependent_layout, dependent_figsize,
-                    include_boxplots=False, boxplot_figsize=None):
-    print(f"Distribution of target {target} and dependent variables:")
-    data[target].hist(figsize=target_figsize, grid=False).set_title(target)
-    data.drop([target], axis=1).hist(layout=dependent_layout, figsize=dependent_figsize, sharey=True, grid=False)
+                    include_boxplots=False):
+    print(f'Distribution of target "{target}" and dependent variables:')
+    data.hist(layout=dependent_layout, figsize=dependent_figsize, sharey=True, grid=False)
+    plt.tight_layout();
 
     if include_boxplots:
-        data.plot(kind='box', subplots=True, figsize=boxplot_figsize);
-        
-    plt.tight_layout();
+        data.plot(kind='box', subplots=True, layout=dependent_layout, figsize=dependent_figsize)
+        plt.tight_layout();
 
 
 def plot_scores(scores_dict):

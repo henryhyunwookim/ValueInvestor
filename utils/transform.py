@@ -140,7 +140,7 @@ def add_moving_average(df):
     return df
 
 
-def decompose_timeseries(df, frequency, column, add_to_df=True, plot=True):    
+def add_seasonal_components(df, frequency, column, add_to_df=True, plot=True):    
     result = seasonal_decompose(df.asfreq(frequency).ffill()[[column]])
 
     if plot:
@@ -152,3 +152,16 @@ def decompose_timeseries(df, frequency, column, add_to_df=True, plot=True):
         df['Residual'] = result.resid
 
         return df
+    
+
+def add_datetime_features(df, year, month, day, weekday):
+    if year:
+        df["Year"] = df.index.year
+    if month:
+        df["Month"] = df.index.month
+    if day:
+        df["Day"] = df.index.day
+    if weekday:
+        df["Weekday"] = df.index.weekday
+
+    return df
