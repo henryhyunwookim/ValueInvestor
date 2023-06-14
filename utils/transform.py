@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from datetime import timedelta
 
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
@@ -165,3 +166,23 @@ def add_datetime_features(df, year, month, day, weekday):
         df["Weekday"] = df.index.weekday
 
     return df
+
+
+def add_data_from_past(df):
+    df = df.asfreq('D').ffill()
+
+    df_prev_day = df.loc[ (df.index - timedelta(days=1))[1:] ].rename(
+        columns = {column: column + " (-1 day)" for column in df.columns})
+    df_prev_day.index += timedelta(days=1)
+
+    df_prev_week = df.loc[ (df.index - timedelta(days=7))[7:] ].rename(
+        columns = {column: column + " (-1 week)" for column in df.columns})
+    df_prev_week.index += timedelta(days=7)
+
+    df_prev_month = df.loc[ (df.index - timedelta(days=30))[30:] ].rename(
+        columns = {column: column + " (-1 month)" for column in df.columns})
+    df_prev_month.index += timedelta(days=30)
+
+    concat_df = pd.concat([df, df_prev_day, df_prev_week, df_prev_month], axis=1)
+    
+    return concat_df
