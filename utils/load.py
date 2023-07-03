@@ -104,4 +104,8 @@ def load_dataframes(file_path, full_sheet_names):
         data = [[cell.value for cell in row] for row in sheet.iter_rows()]
         data_dfs[full_sheet_name] = pd.DataFrame(data[1:-1], columns=data[0])
 
+    print(f'{len(data_dfs)} DataFrames loaded with the following sheet names:\n')
+    for sheet_name in full_sheet_names:
+        print(sheet_name)
+
     return data_dfs

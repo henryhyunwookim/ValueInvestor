@@ -99,3 +99,12 @@ def plot_timeseries(data, time_variable, group_col, group_vals, figsize,
         ax=ax[1])
     ax[1].set_title(f"{class_names[0]} to {class_names[1]} ratio for each {time_variable}")
     plt.tight_layout(pad=3);
+
+
+def plot_heatmap(df, figsize, rotate_xticks=None):
+    plt.figure(figsize=figsize)
+    sns.heatmap(df.corr())
+    plt.tight_layout()
+
+    if rotate_xticks != None:
+        plt.xticks(rotation = rotate_xticks)
