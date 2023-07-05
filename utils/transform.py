@@ -1,13 +1,11 @@
 import pandas as pd
 import numpy as np
 from datetime import timedelta
-
+from pylab import rcParams
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.preprocessing import StandardScaler
-
 from statsmodels.tsa.seasonal import seasonal_decompose
-
 
 def pivot_data(data, target, binary_target_value=None):
     X_original = data.drop([target], axis=1)
@@ -145,6 +143,9 @@ def add_seasonal_components(df, frequency, column, add_to_df=True, plot=True):
     result = seasonal_decompose(df.asfreq(frequency).ffill()[[column]])
 
     if plot:
+        rcParams['figure.figsize'] = 12, 8
+
+        print('Plotting seasonal componets:')
         result.plot()
 
     if add_to_df:

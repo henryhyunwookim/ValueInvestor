@@ -1,9 +1,9 @@
 import numpy as np
 import operator
-
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from pylab import rcParams
 
 def plot_histograms(data,
                     target, target_figsize,
@@ -108,3 +108,11 @@ def plot_heatmap(df, figsize, rotate_xticks=None):
 
     if rotate_xticks != None:
         plt.xticks(rotation = rotate_xticks)
+
+
+def plot_autocorrelation(df, column, partial):
+    rcParams['figure.figsize'] = 12, 2
+    if partial:
+        plot_pacf(df[column], method='ywm');
+    else:
+        plot_acf(df[column]);
