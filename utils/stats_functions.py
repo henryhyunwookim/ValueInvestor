@@ -107,6 +107,10 @@ def run_chi_tests(data, target, significance_level,
         if independence_test:
             "Perform Chi-Square test of Independence."
             chi_independence_df = chi_independence_test(chi_independence_df, col, target, chi2, p, significance_level)
+            print(f'''
+            If the null hypothesis is not rejected at the significance level of {significance_level},
+            the Variable and the target (i.e. {target}) are independent of each other.
+            ''')
             
         if goodness_of_fit_test:
             "Perform Chi-square test of goodness of fit."
