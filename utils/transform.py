@@ -139,7 +139,7 @@ def add_moving_average(df):
     return df
 
 
-def add_seasonal_components(df, frequency, column, add_to_df=True, plot=True):    
+def seasonal_decomposition(df, frequency, column, add_to_df=True, plot=True):    
     result = seasonal_decompose(df.asfreq(frequency).ffill()[[column]])
 
     if plot:
@@ -186,4 +186,45 @@ def add_data_from_past(df):
 
     concat_df = pd.concat([df, df_prev_day, df_prev_week, df_prev_month], axis=1)
     
+    return concat_df
+
+
+def add_features_from_previous_dates(df, min_previous_date=2, max_previous_date=8):
+    df = df.drop(['Vol.', 'Change %'], axis=1)
+
+    price_previous_day = df[:-1]
+    price_previous_day.index = df.index[1:]
+    price_previous_day = price_previous_day.rename(columns={col: f'{col} (Day-1)' for col in df.columns})
+
+    moving_average_dfs = []
+    max_high_dfs = []
+    min_low_dfs = []
+    for num_day in range(min_previous_date, max_previous_date):
+        simple_moving_average_df = df['Price'].rolling(window=num_day).mean()[ (num_day-1) : -1]
+        simple_moving_average_df.index = df.index[num_day : ]
+        simple_moving_average_df.name = f'{num_day} Day SMA (Day-1)'
+        moving_average_dfs.append(simple_moving_average_df)
+
+        max_high_df = df['High'].rolling(window=num_day).max()[ (num_day-1) : -1]
+        max_high_df.index = df.index[num_day : ]
+        max_high_df.name = f'{num_day} Day Max High (Day-1)'
+        max_high_dfs.append(max_high_df)
+
+        min_low_df = df['Low'].rolling(window=num_day).min()[ (num_day-1) : -1]
+        min_low_df.index = df.index[num_day : ]
+        min_low_df.name = f'{num_day} Day Min Low (Day-1)'
+        min_low_dfs.append(min_low_df)
+
+        # exponential_moving_average_df = df['Price'].ewm(span=num_day).mean()[ (num_day-1) : -1]
+        # exponential_moving_average_df.index = df.index[num_day : ]
+        # exponential_moving_average_df.name = f'{num_day} Day EMA (Day-1)'
+        # moving_average_dfs.append(exponential_moving_average_df)
+
+    concat_df = pd.concat(
+        [df, price_previous_day]
+        + moving_average_dfs
+        + max_high_dfs
+        + min_low_dfs,
+        axis=1).dropna()
+
     return concat_df

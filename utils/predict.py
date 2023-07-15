@@ -6,7 +6,7 @@ from pathlib import Path
 
 from sklearn.model_selection import cross_val_score, RepeatedStratifiedKFold
 
-from utils.transform import resample_data, normalize_data
+from utils.transform import resample_data, normalize_scale
 
 
 def transform_fit_predict(X_train, y_train, X_test, y_test,
@@ -21,7 +21,7 @@ def transform_fit_predict(X_train, y_train, X_test, y_test,
         X_train, y_train = resample_data(X_train, y_train, method=resampling_method, random_state=random_state)
 
     if normalize:
-        X_train, X_test = normalize_data(X_train, X_test, method=normalize_method)
+        X_train, X_test = normalize_scale(X_train, X_test, method=normalize_method)
 
     model.fit(X_train, y_train)
     if save_model:
@@ -93,3 +93,58 @@ def get_stats(X_train, X_test, y_train, y_test, model,
     test_result = get_rank_predictions(X_test, y_test, model, target_column=target_column, target=target)
 
     return stats_df, train_result, test_result
+
+
+def get_trading_decision_and_results(
+          daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
+          results_df, benchmark_col, compare_against_col,
+          initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1
+):
+    results_dfs = {}
+    for interval, trading_dates in zip(['Daily', 'Weekly', 'Monthly'], [daily_trading_dates, weekly_trading_dates, monthly_trading_dates]):
+        df = results_df.loc[trading_dates]
+        df['Balance'] = initial_balance
+        df['No. of Stock'] = initial_no_stock
+        df['Trading Decision'] = 'Hold' # Default trading decision
+
+        index_list = df.index
+        last_index = index_list[-1]
+        for i in range(len(df)):
+            current_index = index_list[i]
+            previous_index = index_list[max(0, i-1)]
+
+            price = df.loc[current_index, 'Price'] 
+            sma = df.loc[current_index, benchmark_col]
+            compare_against = df.loc[current_index, compare_against_col]
+
+            previous_balance = df.loc[previous_index, 'Balance']
+            previous_no_stock = df.loc[previous_index, 'No. of Stock']
+
+            if (((sma > compare_against) or (current_index == last_index))\
+                and (previous_no_stock > 0)):
+                    df.loc[current_index, 'Trading Decision'] = 'Sell'
+                    
+                    # Sell all stocks at once
+                    if current_index == last_index:
+                        df.loc[current_index, 'Balance'] = previous_balance + previous_no_stock * price
+                        df.loc[current_index, 'No. of Stock'] = 0
+
+                    else:
+                        no_stock_to_sell = min(max_no_stock_to_trade, previous_no_stock)
+                        df.loc[current_index, 'Balance'] = previous_balance + price * no_stock_to_sell
+                        df.loc[current_index, 'No. of Stock'] = previous_no_stock - no_stock_to_sell
+
+            elif sma < compare_against:
+                df.loc[current_index, 'Trading Decision'] = 'Buy'
+
+                df.loc[current_index, 'Balance'] = previous_balance - price * max_no_stock_to_trade
+                df.loc[current_index, 'No. of Stock'] = previous_no_stock + max_no_stock_to_trade
+
+            else:
+                df.loc[current_index, 'Trading Decision'] = 'Hold'
+                df.loc[current_index, 'Balance'] = previous_balance
+                df.loc[current_index, 'No. of Stock'] = previous_no_stock
+
+        results_dfs[interval] = df
+
+    return results_dfs

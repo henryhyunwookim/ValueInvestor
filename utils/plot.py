@@ -9,7 +9,7 @@ def plot_histograms(data,
                     target, target_figsize,
                     dependent_layout, dependent_figsize,
                     include_boxplots=False):
-    print(f'Distribution of target "{target}" and dependent variables:')
+    print(f"Distribution of target '{target}' and dependent variables:")
     data.hist(layout=dependent_layout, figsize=dependent_figsize, sharey=True, grid=False)
     plt.tight_layout();
 
