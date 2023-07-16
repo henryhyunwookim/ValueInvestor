@@ -98,7 +98,8 @@ def get_stats(X_train, X_test, y_train, y_test, model,
 def get_trading_decision_and_results(
           daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
           results_df, benchmark_col, compare_against_col,
-          initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1
+          initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1,
+          ignore_upper_lower=False
 ):
     results_dfs = {}
     for interval, trading_dates in zip(['Daily', 'Weekly', 'Monthly'], [daily_trading_dates, weekly_trading_dates, monthly_trading_dates]):
@@ -114,13 +115,20 @@ def get_trading_decision_and_results(
             previous_index = index_list[max(0, i-1)]
 
             price = df.loc[current_index, 'Price'] 
-            sma = df.loc[current_index, benchmark_col]
             compare_against = df.loc[current_index, compare_against_col]
+
+            benchmark = df.loc[current_index, benchmark_col]
+            upper = df.loc[current_index, 'Upper Band']
+            lower = df.loc[current_index, 'Lower Band']
+
+            if ignore_upper_lower:
+                upper = benchmark
+                lower = benchmark
 
             previous_balance = df.loc[previous_index, 'Balance']
             previous_no_stock = df.loc[previous_index, 'No. of Stock']
 
-            if (((sma > compare_against) or (current_index == last_index))\
+            if (((compare_against > upper) or (current_index == last_index))\
                 and (previous_no_stock > 0)):
                     df.loc[current_index, 'Trading Decision'] = 'Sell'
                     
@@ -134,7 +142,7 @@ def get_trading_decision_and_results(
                         df.loc[current_index, 'Balance'] = previous_balance + price * no_stock_to_sell
                         df.loc[current_index, 'No. of Stock'] = previous_no_stock - no_stock_to_sell
 
-            elif sma < compare_against:
+            elif compare_against < lower:
                 df.loc[current_index, 'Trading Decision'] = 'Buy'
 
                 df.loc[current_index, 'Balance'] = previous_balance - price * max_no_stock_to_trade

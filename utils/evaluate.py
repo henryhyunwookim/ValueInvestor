@@ -30,6 +30,7 @@ import operator
 
 # Custom function
 from utils.plot import plot_scores
+from utils.predict import get_trading_decision_and_results
 
 
 def update_dicts(clf, X, y, n_splits, n, eval_dict, scores_dict, key, random_state, _type):
@@ -272,3 +273,48 @@ def return_result_table(results):
                                 index=['Train loss', 'Validate loss', 'Test loss', 'Train f1', 'Validate f1', 'Test f1']).T
 
     return result_table
+
+
+def get_capital_returns(results_dfs):
+    capital_returns = 0
+    capital_return_dict = {}
+    for interval, df in results_dfs.items():
+        capital_return = df.iloc[-1]['Balance']
+        capital_returns += capital_return
+        capital_return_dict[f'{interval} Return Total'] = round(capital_return, 4)
+    capital_return_dict['Total Capital Returns'] = round(capital_returns, 4)
+
+    return capital_return_dict
+
+
+def get_capital_return_df(results_df, daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
+                          benchmark_col='20-day SMA',
+                          prediction_col='Predicted',
+                          compare_against_col='Price',
+                          ignore_upper_lower=False):
+    # Get df for prediction_col
+    prediction_results_dfs = get_trading_decision_and_results(
+        daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
+        results_df, benchmark_col, prediction_col,
+        initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1,
+        ignore_upper_lower=ignore_upper_lower
+    )
+    prediction_df = pd.DataFrame.from_dict(
+        get_capital_returns(prediction_results_dfs), orient='index', columns=[prediction_col]
+        )
+
+    # Get df for compare_against_col
+    compare_results_dfs = get_trading_decision_and_results(
+        daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
+        results_df, benchmark_col, compare_against_col,
+        initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1,
+        ignore_upper_lower=ignore_upper_lower
+    )
+    compare_df = pd.DataFrame.from_dict(
+        get_capital_returns(compare_results_dfs), orient='index', columns=[compare_against_col]
+        )
+
+    capital_return_df = pd.concat([prediction_df, compare_df], axis=1)
+    capital_return_df['Difference'] = capital_return_df[prediction_col] - capital_return_df[compare_against_col]
+
+    return capital_return_df
