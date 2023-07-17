@@ -290,14 +290,12 @@ def get_capital_returns(results_dfs):
 def get_capital_return_df(results_df, daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
                           benchmark_col='20-day SMA',
                           prediction_col='Predicted',
-                          compare_against_col='Price',
-                          ignore_upper_lower=False):
+                          compare_against_col='Price'):
     # Get df for prediction_col
     prediction_results_dfs = get_trading_decision_and_results(
         daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
         results_df, benchmark_col, prediction_col,
-        initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1,
-        ignore_upper_lower=ignore_upper_lower
+        initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1
     )
     prediction_df = pd.DataFrame.from_dict(
         get_capital_returns(prediction_results_dfs), orient='index', columns=[prediction_col]
@@ -307,8 +305,7 @@ def get_capital_return_df(results_df, daily_trading_dates, weekly_trading_dates,
     compare_results_dfs = get_trading_decision_and_results(
         daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
         results_df, benchmark_col, compare_against_col,
-        initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1,
-        ignore_upper_lower=ignore_upper_lower
+        initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1
     )
     compare_df = pd.DataFrame.from_dict(
         get_capital_returns(compare_results_dfs), orient='index', columns=[compare_against_col]

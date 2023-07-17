@@ -101,9 +101,13 @@ def plot_timeseries(data, time_variable, group_col, group_vals, figsize,
     plt.tight_layout(pad=3);
 
 
-def plot_heatmap(df, figsize, rotate_xticks=None):
+def plot_heatmap(df, figsize, rotate_xticks=None, corr_df=False,
+                 vmin=-1, vmax=1, center=0):
     plt.figure(figsize=figsize)
-    sns.heatmap(df.corr())
+    if corr_df:
+        sns.heatmap(df, vmin=vmin, vmax=vmax, center=center)
+    else:
+        sns.heatmap(df.corr(), vmin=vmin, vmax=vmax, center=center)
     plt.tight_layout()
 
     if rotate_xticks != None:

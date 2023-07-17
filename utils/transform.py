@@ -189,42 +189,83 @@ def add_data_from_past(df):
     return concat_df
 
 
-def add_features_from_previous_dates(df, min_previous_date=2, max_previous_date=8):
+def add_features_from_previous_dates(df, previous_date_range=[2, 3, 4, 5, 6, 7]):
     df = df.drop(['Vol.', 'Change %'], axis=1)
+    # df = df.drop(['Change %'], axis=1)
 
     price_previous_day = df[:-1]
     price_previous_day.index = df.index[1:]
     price_previous_day = price_previous_day.rename(columns={col: f'{col} (Day-1)' for col in df.columns})
 
-    moving_average_dfs = []
+    price_sma_dfs = []
+    price_ema_dfs = []
     max_high_dfs = []
     min_low_dfs = []
-    for num_day in range(min_previous_date, max_previous_date):
-        simple_moving_average_df = df['Price'].rolling(window=num_day).mean()[ (num_day-1) : -1]
-        simple_moving_average_df.index = df.index[num_day : ]
-        simple_moving_average_df.name = f'{num_day} Day SMA (Day-1)'
-        moving_average_dfs.append(simple_moving_average_df)
+    # max_min_diff_dfs = []
+    # vol_sma_dfs = []
+    # vol_ema_dfs = []
+    # max_vol_dfs = []
+    # min_vol_dfs = []
+    for num_day in previous_date_range:
+        index = df.index[num_day : ]
+
+        price_sma_df = df['Price'].rolling(window=num_day).mean()[ (num_day-1) : -1]
+        price_sma_df.index = index
+        price_sma_df.name = f'{num_day} Day SMA Price (Day-1)'
+        price_sma_dfs.append(price_sma_df)
+
+        price_ema_df = df['Price'].ewm(span=num_day).mean()[ (num_day-1) : -1]
+        price_ema_df.index = index
+        price_ema_df.name = f'{num_day} Day EMA Price (Day-1)'
+        price_ema_dfs.append(price_ema_df)
 
         max_high_df = df['High'].rolling(window=num_day).max()[ (num_day-1) : -1]
-        max_high_df.index = df.index[num_day : ]
+        max_high_df.index = index
         max_high_df.name = f'{num_day} Day Max High (Day-1)'
         max_high_dfs.append(max_high_df)
 
         min_low_df = df['Low'].rolling(window=num_day).min()[ (num_day-1) : -1]
-        min_low_df.index = df.index[num_day : ]
+        min_low_df.index = index
         min_low_df.name = f'{num_day} Day Min Low (Day-1)'
         min_low_dfs.append(min_low_df)
 
-        # exponential_moving_average_df = df['Price'].ewm(span=num_day).mean()[ (num_day-1) : -1]
-        # exponential_moving_average_df.index = df.index[num_day : ]
-        # exponential_moving_average_df.name = f'{num_day} Day EMA (Day-1)'
-        # moving_average_dfs.append(exponential_moving_average_df)
+        # max_min_diff_df = max_high_df - min_low_df
+        # max_min_diff_df.name = f'{num_day} Day MaxHigh-MinLow Difference (Day-1)'
+        # max_min_diff_dfs.append(max_min_diff_df)
+
+        # Add Vol. features
+        # vol_sma_df = df['Vol.'].rolling(window=num_day).mean()[ (num_day-1) : -1]
+        # vol_sma_df.index = index
+        # vol_sma_df.name = f'{num_day} Day SMA Vol. (Day-1)'
+        # vol_sma_dfs.append(vol_sma_df)
+
+        # vol_ema_df = df['Vol.'].ewm(span=num_day).mean()[ (num_day-1) : -1]
+        # vol_ema_df.index = index
+        # vol_ema_df.name = f'{num_day} Day EMA Vol. (Day-1)'
+        # vol_ema_dfs.append(vol_ema_df)
+
+        # max_vol_df = df['Vol.'].rolling(window=num_day).max()[ (num_day-1) : -1]
+        # max_vol_df.index = index
+        # max_vol_df.name = f'{num_day} Day Max Vol. (Day-1)'
+        # max_vol_dfs.append(max_vol_df)
+
+        # min_vol_df = df['Vol.'].rolling(window=num_day).min()[ (num_day-1) : -1]
+        # min_vol_df.index = index
+        # min_vol_df.name = f'{num_day} Day Min Vol. (Day-1)'
+        # min_vol_dfs.append(min_vol_df)
 
     concat_df = pd.concat(
         [df, price_previous_day]
-        + moving_average_dfs
+        + price_sma_dfs
+        + price_ema_dfs
         + max_high_dfs
-        + min_low_dfs,
+        + min_low_dfs
+        # + max_min_diff_dfs
+        # + vol_sma_dfs
+        # + vol_ema_dfs
+        # + max_vol_dfs
+        # + min_vol_dfs
+        ,
         axis=1).dropna()
 
     return concat_df
