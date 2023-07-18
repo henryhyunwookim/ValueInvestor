@@ -5,6 +5,7 @@ from pylab import rcParams
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from statsmodels.tsa.seasonal import seasonal_decompose
 
 def pivot_data(data, target, binary_target_value=None):
@@ -33,9 +34,12 @@ def resample_data(X_train, y_train, method, random_state=None):
     return X_train_balanced, y_train_balanced
 
 
-def normalize_scale(X_train, X_test, method="standard", exclude_column=None):
+def normalize_scale(X_train, X_test, method="standard", exclude_column=None,
+                    min=0, max=1):
     if method == "standard":
         scaler = StandardScaler()
+    elif method == "minmax":
+        scaler = MinMaxScaler(feature_range=(min, max))
     X_train_normalized = pd.DataFrame(scaler.fit_transform(X_train),
                                       index=X_train.index, columns=X_train.columns)
     X_test_normalized = pd.DataFrame(scaler.transform(X_test),
@@ -45,7 +49,7 @@ def normalize_scale(X_train, X_test, method="standard", exclude_column=None):
         X_train_normalized[exclude_column] = X_train[exclude_column]
         X_test_normalized[exclude_column] = X_test[exclude_column]
 
-    return X_train_normalized, X_test_normalized
+    return X_train_normalized, X_test_normalized, scaler
 
 
 def numeric_to_interval(data, column, n_intervals):
