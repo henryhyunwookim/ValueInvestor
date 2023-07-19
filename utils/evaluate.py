@@ -282,7 +282,7 @@ def get_capital_returns(results_dfs):
         capital_return = df.iloc[-1]['Balance']
         capital_returns += capital_return
         capital_return_dict[f'{interval} Return Total'] = round(capital_return, 4)
-    capital_return_dict['Total Capital Returns'] = round(capital_returns, 4)
+    # capital_return_dict['Total Capital Returns'] = round(capital_returns, 4)
 
     return capital_return_dict
 
