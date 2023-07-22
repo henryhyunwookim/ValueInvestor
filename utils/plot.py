@@ -102,7 +102,7 @@ def plot_timeseries(data, time_variable, group_col, group_vals, figsize,
 
 
 def plot_heatmap(df, figsize, rotate_xticks=None, corr_df=False,
-                 vmin=-1, vmax=1, center=0):
+                 vmin=None, vmax=None, center=None):
     plt.figure(figsize=figsize)
     if corr_df:
         sns.heatmap(df, vmin=vmin, vmax=vmax, center=center)

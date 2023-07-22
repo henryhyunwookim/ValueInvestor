@@ -21,6 +21,8 @@ from sklearn.pipeline import make_pipeline
 
 # Metrics
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_percentage_error
 
 # Others
 import pandas as pd
@@ -315,3 +317,15 @@ def get_capital_return_df(results_df, daily_trading_dates, weekly_trading_dates,
     capital_return_df['Difference'] = capital_return_df[prediction_col] - capital_return_df[compare_against_col]
 
     return capital_return_df
+
+
+def evaluate_predictions(y_test, preds_df, keys, plot_df=True):
+    if plot_df:
+        preds_df.plot(figsize=(12,4));
+    eval_list = [[key,
+                  mean_squared_error(y_test, preds_df[key].values),
+                  mean_absolute_percentage_error(y_test, preds_df[key].values),
+                  r2_score(y_test, preds_df[key].values)] for key in keys]
+    eval_df = pd.DataFrame(eval_list, columns=['Model', 'Mean Squared Error', 'Mean Absolute Percentage Error', 'R2 Score'])
+    
+    return eval_df

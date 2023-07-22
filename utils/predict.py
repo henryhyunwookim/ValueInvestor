@@ -3,8 +3,12 @@ import pandas as pd
 import pickle
 import os
 from pathlib import Path
+from tqdm import tqdm
 
 from sklearn.model_selection import cross_val_score, RepeatedStratifiedKFold
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 
 from utils.transform import resample_data, normalize_scale
 
@@ -156,3 +160,47 @@ def get_trading_decision_and_results(
         results_dfs[interval] = df
 
     return results_dfs
+
+
+def train_models_and_make_predictions(X_train, y_train, X_test, y_test, random_state):
+    result_dfs = []
+    for i in tqdm(range(0, len(X_test))):
+        new_X_train = pd.concat([X_train, X_test[:i]])
+        new_y_train = pd.concat([y_train, y_test[:i]])
+        new_X_test = X_test[i:i+1]
+        new_y_test = y_test[i:i+1]
+
+        result_df = pd.DataFrame(new_y_test)
+
+        # Train models and get predictions only for 1 day.
+        sarimax_model = SARIMAX(
+            endog = new_y_train,
+            exog = new_X_train,
+            order = (0, 1, 0),
+            seasonal_order = (0, 0, 0, 0)
+            )
+        results = sarimax_model.fit(disp=False)
+        pred = results.get_prediction(start=new_X_train.shape[0],
+                                    end=new_X_train.shape[0] + new_X_test.shape[0] - 1,
+                                    exog=new_X_test)
+        pred_mean = pred.predicted_mean
+        pred_mean.index = new_X_test.index
+        result_df['SARIMAX'] = pred_mean.values
+
+        rf_reg = RandomForestRegressor(max_depth=2, random_state=random_state)
+        rf_reg.fit(new_X_train, new_y_train)
+        rf_pred = rf_reg.predict(new_X_test)
+        rf_pred = pd.Series(rf_pred, index=new_X_test.index)
+        result_df['RandomForestRegressor'] = rf_pred.values
+
+        xgb_reg = XGBRegressor(random_state=random_state)
+        xgb_reg.fit(new_X_train, new_y_train)
+        xgb_pred = xgb_reg.predict(new_X_test)
+        xgb_pred = pd.Series(xgb_pred, index=new_X_test.index)
+        result_df['XGBRegressor'] = xgb_pred.values
+
+        result_dfs.append(result_df)
+
+    preds_df = pd.concat(result_dfs)
+
+    return preds_df
