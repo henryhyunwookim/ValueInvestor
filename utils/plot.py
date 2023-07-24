@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import operator
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -120,3 +121,27 @@ def plot_autocorrelation(df, column, partial):
         plot_pacf(df[column], method='ywm');
     else:
         plot_acf(df[column]);
+
+
+def plot_bollinger_band(rolling_mean, bollinger_band_window, upper_band, lower_band,
+                        y_test,
+                        figsize=(12, 4), additional_df=None, xlabel=None, ylabel=None):
+    ax = rolling_mean.plot(label=f'{bollinger_band_window}-day SMA', figsize=figsize)
+    
+    ax.fill_between(y_test.index,
+                    lower_band,
+                    upper_band,
+                    color='b', alpha=.2)
+    
+    if xlabel != None:
+        ax.set_xlabel(xlabel)
+
+    if ylabel != None:
+        ax.set_ylabel(ylabel)
+    
+    if isinstance(additional_df, pd.DataFrame):
+        additional_df.plot(ax=ax)
+
+    plt.legend()
+    plt.tight_layout()
+    plt.show()

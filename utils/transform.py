@@ -290,3 +290,13 @@ def add_features_from_previous_dates(df, previous_date_range=[2, 3, 4, 5, 6, 7])
         axis=1).dropna()
 
     return concat_df
+
+
+def create_bollinger_band(y, y_test, bollinger_band_window=20, bollinger_band_std=2):
+    rolling_mean = y.rolling(window=bollinger_band_window).mean().loc[y_test.index]
+    rolling_std = y.rolling(window=bollinger_band_window).std().loc[y_test.index]
+
+    upper_band = (rolling_mean + (rolling_std * bollinger_band_std)).rename('Upper Band')
+    lower_band = (rolling_mean - (rolling_std * bollinger_band_std)).rename('Lower Band')
+
+    return rolling_mean, upper_band, lower_band

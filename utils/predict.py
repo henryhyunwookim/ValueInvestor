@@ -134,21 +134,25 @@ def get_trading_decision_and_results(
 
             if (((compare_against > upper) or (current_index == last_index))\
                 and (previous_no_stock > 0)):
-                    df.loc[current_index, 'Trading Decision'] = 'Sell'
                     
-                    # Sell all stocks at once
+                    no_stock_to_sell = min(max_no_stock_to_trade, previous_no_stock)
+                    # Sell all stocks on the last trading date
                     if current_index == last_index:
-                        df.loc[current_index, 'Balance'] = previous_balance + previous_no_stock * price
-                        df.loc[current_index, 'No. of Stock'] = 0
+                        no_stock_to_sell = previous_no_stock
+
+                    # Only sell when we won't lose money
+                    if (no_stock_to_sell * price) >= 0:
+                        df.loc[current_index, 'Trading Decision'] = 'Sell'
+                        df.loc[current_index, 'Balance'] = previous_balance + (no_stock_to_sell * price)
+                        df.loc[current_index, 'No. of Stock'] = previous_no_stock - no_stock_to_sell
 
                     else:
-                        no_stock_to_sell = min(max_no_stock_to_trade, previous_no_stock)
-                        df.loc[current_index, 'Balance'] = previous_balance + price * no_stock_to_sell
-                        df.loc[current_index, 'No. of Stock'] = previous_no_stock - no_stock_to_sell
+                        df.loc[current_index, 'Trading Decision'] = 'Hold'
+                        df.loc[current_index, 'Balance'] = previous_balance
+                        df.loc[current_index, 'No. of Stock'] = previous_no_stock
 
             elif compare_against < lower:
                 df.loc[current_index, 'Trading Decision'] = 'Buy'
-
                 df.loc[current_index, 'Balance'] = previous_balance - price * max_no_stock_to_trade
                 df.loc[current_index, 'No. of Stock'] = previous_no_stock + max_no_stock_to_trade
 
