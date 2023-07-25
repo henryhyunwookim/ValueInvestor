@@ -277,16 +277,31 @@ def return_result_table(results):
     return result_table
 
 
+# def get_capital_returns(results_dfs, initial_balance=0):
+#     capital_returns = 0
+#     capital_return_dict = {}
+#     for interval, df in results_dfs.items():
+#         capital_return = df.iloc[-1]['Balance'] - initial_balance
+#         capital_returns += capital_return
+#         capital_return_dict[f'{interval} Trading'] = round(capital_return, 4)
+#     # capital_return_dict['Total Capital Returns'] = round(capital_returns, 4)
+
+#     return capital_return_dict
 def get_capital_returns(results_dfs, initial_balance=0):
-    capital_returns = 0
     capital_return_dict = {}
     for interval, df in results_dfs.items():
-        capital_return = df.iloc[-1]['Balance'] - initial_balance
-        capital_returns += capital_return
-        capital_return_dict[f'{interval} Return Total'] = round(capital_return, 4)
-    # capital_return_dict['Total Capital Returns'] = round(capital_returns, 4)
+        last_row = df.iloc[-1]
+        capital_return = round(last_row['Balance'] - initial_balance, 4)
+        remaining_stock = last_row['No. of Stock']
+        last_closing_price = last_row['Price']
+        
+        capital_return_dict[f'{interval} Trading'] = {'Capital Return': capital_return,
+                                                        'Remaining Stock': remaining_stock,
+                                                        'Last Closing Price': last_closing_price}
 
-    return capital_return_dict
+    capital_return_df = pd.DataFrame.from_dict(capital_return_dict).T
+
+    return capital_return_df
 
 
 def get_capital_return_df(results_df, daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
@@ -327,6 +342,9 @@ def evaluate_predictions(y_test, preds_df, keys, plot_df=True):
                   mean_squared_error(y_test, preds_df[key].values),
                   mean_absolute_percentage_error(y_test, preds_df[key].values),
                   r2_score(y_test, preds_df[key].values)] for key in keys]
-    eval_df = pd.DataFrame(eval_list, columns=['Model', 'Mean Squared Error', 'Mean Absolute Percentage Error', 'R2 Score'])
+    eval_df = pd.DataFrame(eval_list,
+                           columns=['Model', 'Mean Squared Error', 'Mean Absolute Percentage Error', 'R2 Score'])\
+                            .sort_values(['Mean Squared Error', 'Mean Absolute Percentage Error', 'R2 Score'],
+                                         ascending=[True, True, False])
     
     return eval_df

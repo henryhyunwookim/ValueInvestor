@@ -293,6 +293,12 @@ def add_features_from_previous_dates(df, previous_date_range=[2, 3, 4, 5, 6, 7])
 
 
 def create_bollinger_band(y, y_test, bollinger_band_window=20, bollinger_band_std=2):
+    """
+    Short term: 10 day moving average, bands at 1.5 standard deviations.
+    Medium term: 20 day moving average, bands at 2 standard deviations.
+    Long term: 50 day moving average, bands at 2.5 standard deviations.
+    """
+    
     rolling_mean = y.rolling(window=bollinger_band_window).mean().loc[y_test.index]
     rolling_std = y.rolling(window=bollinger_band_window).std().loc[y_test.index]
 
