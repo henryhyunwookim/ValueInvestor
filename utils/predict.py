@@ -10,7 +10,8 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 
-from utils.transform import resample_data, normalize_scale
+from utils.transform import resample_data, normalize_scale, create_bollinger_band
+from utils.evaluate import get_capital_returns
 
 
 def transform_fit_predict(X_train, y_train, X_test, y_test,
@@ -99,15 +100,35 @@ def get_stats(X_train, X_test, y_train, y_test, model,
     return stats_df, train_result, test_result
 
 
-def get_trading_decision_and_results(
-          daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
-          results_df, benchmark_col, compare_against_col,
-          initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1,
-          ignore_upper_lower=False
-):
+def get_trading_decision_and_results(y, y_test, y_pred, bollinger_band_windows, bollinger_band_stds,
+                                     df, initial_balance, initial_no_stock, max_no_stock_to_trade,
+                                     daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
+                                     use_pred=False, pred_col='Predicted', print_result=True):
+
+    """
+    Short term: 10 day moving average, bands at 1.5 standard deviations.
+    Medium term: 20 day moving average, bands at 2 standard deviations.
+    Long term: 50 day moving average, bands at 2.5 standard deviations.
+    """
+
+    temp_dfs = {}
+    for interval, window, std in zip(['Daily', 'Weekly', 'Monthly'],
+                                     bollinger_band_windows, bollinger_band_stds):
+        rolling_mean, upper_band, lower_band = create_bollinger_band(y, y_test, window, std)
+        temp_df = pd.concat([
+            df[['Price', 'Open', 'High', 'Low']],
+            y_pred,
+            rolling_mean.rename(f'{window}-day SMA'),
+            upper_band,
+            lower_band
+            ],
+            axis=1).dropna()
+        temp_dfs[interval] = temp_df
+
     results_dfs = {}
-    for interval, trading_dates in zip(['Daily', 'Weekly', 'Monthly'], [daily_trading_dates, weekly_trading_dates, monthly_trading_dates]):
-        df = results_df.loc[trading_dates]
+    for interval, trading_dates in zip(['Daily', 'Weekly', 'Monthly'],
+                                        [daily_trading_dates, weekly_trading_dates, monthly_trading_dates]):
+        df = temp_dfs[interval].loc[trading_dates]
         df['Balance'] = initial_balance
         df['No. of Stock'] = initial_no_stock
         df['Trading Decision'] = 'Hold' # Default trading decision
@@ -118,52 +139,88 @@ def get_trading_decision_and_results(
             current_index = index_list[i]
             previous_index = index_list[max(0, i-1)]
 
-            price = df.loc[current_index, 'Price'] 
-            compare_against = df.loc[current_index, compare_against_col]
+            # price = df.loc[current_index, 'Price'] 
+            trading_price = df.loc[current_index, 'Open']
 
-            benchmark = df.loc[current_index, benchmark_col]
-            upper = df.loc[current_index, 'Upper Band']
-            lower = df.loc[current_index, 'Lower Band']
+            previous_high = df.loc[previous_index, 'High'] 
+            previous_low = df.loc[previous_index, 'Low']
 
-            if ignore_upper_lower:
-                upper = benchmark
-                lower = benchmark
+            if use_pred:
+                previous_high = df.loc[previous_index, pred_col]
+                previous_low = df.loc[previous_index, pred_col]
+
+            previous_upper = df.loc[previous_index, 'Upper Band']
+            previous_lower = df.loc[previous_index, 'Lower Band']
 
             previous_balance = df.loc[previous_index, 'Balance']
             previous_no_stock = df.loc[previous_index, 'No. of Stock']
 
-            if (((compare_against > upper) or (current_index == last_index))\
+            if (((previous_high > previous_upper) or (current_index == last_index))\
                 and (previous_no_stock > 0)):
                     
-                    no_stock_to_sell = min(max_no_stock_to_trade, previous_no_stock)
-                    # Sell all stocks on the last trading date
-                    if current_index == last_index:
-                        no_stock_to_sell = previous_no_stock
+                no_stock_to_sell = min( max_no_stock_to_trade, previous_no_stock )
+                # Sell all stocks on the last trading date
+                if current_index == last_index:
+                    no_stock_to_sell = previous_no_stock
 
-                    # Only sell when we won't lose money
-                    if (no_stock_to_sell * price) >= 0:
-                        df.loc[current_index, 'Trading Decision'] = 'Sell'
-                        df.loc[current_index, 'Balance'] = previous_balance + (no_stock_to_sell * price)
-                        df.loc[current_index, 'No. of Stock'] = previous_no_stock - no_stock_to_sell
+                # Only sell when we won't lose money
+                if (no_stock_to_sell * trading_price) >= 0:
+                    if print_result:
+                        print(f'Sell {no_stock_to_sell} stock(s) at {trading_price}.')
+                    df.loc[current_index, 'Trading Decision'] = 'Sell'
+                    df.loc[current_index, 'Balance'] = previous_balance + (no_stock_to_sell * trading_price)
+                    df.loc[current_index, 'No. of Stock'] = previous_no_stock - no_stock_to_sell
+                else:
+                    if print_result:
+                        print(f'Hold. Selling stocks at {trading_price} will create a loss.')
+                    df.loc[current_index, 'Trading Decision'] = 'Hold'
+                    df.loc[current_index, 'Balance'] = previous_balance
+                    df.loc[current_index, 'No. of Stock'] = previous_no_stock
 
+            elif previous_low < previous_lower:
+
+                max_no_stock_to_buy = previous_balance // trading_price
+                no_stock_to_buy = min( max_no_stock_to_trade, max_no_stock_to_buy )
+
+                if no_stock_to_buy > 0:
+                    # Only buy when the balance won't go negative
+                    if previous_balance >= (trading_price * no_stock_to_buy):
+                        if print_result:
+                            print(f'Buy {no_stock_to_buy} stock(s) at {trading_price}.')
+                        df.loc[current_index, 'Trading Decision'] = 'Buy'
+                        df.loc[current_index, 'Balance'] = previous_balance - (trading_price * no_stock_to_buy)
+                        df.loc[current_index, 'No. of Stock'] = previous_no_stock + no_stock_to_buy
                     else:
+                        if print_result:
+                            print(f'Hold. Buying stocks at {trading_price} will create a loss.')
                         df.loc[current_index, 'Trading Decision'] = 'Hold'
                         df.loc[current_index, 'Balance'] = previous_balance
                         df.loc[current_index, 'No. of Stock'] = previous_no_stock
 
-            elif compare_against < lower:
-                df.loc[current_index, 'Trading Decision'] = 'Buy'
-                df.loc[current_index, 'Balance'] = previous_balance - price * max_no_stock_to_trade
-                df.loc[current_index, 'No. of Stock'] = previous_no_stock + max_no_stock_to_trade
+                else:
+                    if print_result:
+                        print(f'Hold. Not enough balance to buy stocks at {trading_price}.')
+                    df.loc[current_index, 'Trading Decision'] = 'Hold'
+                    df.loc[current_index, 'Balance'] = previous_balance
+                    df.loc[current_index, 'No. of Stock'] = previous_no_stock
 
             else:
+                if print_result:
+                    print(f'Hold. The price range is within the Bollinger Band.')
                 df.loc[current_index, 'Trading Decision'] = 'Hold'
                 df.loc[current_index, 'Balance'] = previous_balance
                 df.loc[current_index, 'No. of Stock'] = previous_no_stock
 
+        last_row = df.iloc[-1]
+        if print_result:
+            print(f'\nTrading interval: {interval}')
+            print(f'{last_row["No. of Stock"]} remaining stock at last closing price of {last_row["Price"]}')
+            print('-----------------------------------------------------------------------------------')
         results_dfs[interval] = df
+    
+    capital_return_df = get_capital_returns(results_dfs, initial_balance)
 
-    return results_dfs
+    return capital_return_df
 
 
 def train_models_and_make_predictions(X_train, y_train, X_test, y_test, random_state):

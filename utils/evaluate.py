@@ -277,16 +277,6 @@ def return_result_table(results):
     return result_table
 
 
-# def get_capital_returns(results_dfs, initial_balance=0):
-#     capital_returns = 0
-#     capital_return_dict = {}
-#     for interval, df in results_dfs.items():
-#         capital_return = df.iloc[-1]['Balance'] - initial_balance
-#         capital_returns += capital_return
-#         capital_return_dict[f'{interval} Trading'] = round(capital_return, 4)
-#     # capital_return_dict['Total Capital Returns'] = round(capital_returns, 4)
-
-#     return capital_return_dict
 def get_capital_returns(results_dfs, initial_balance=0):
     capital_return_dict = {}
     for interval, df in results_dfs.items():
