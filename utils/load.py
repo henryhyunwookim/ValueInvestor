@@ -9,6 +9,8 @@ from collections import defaultdict
 from PIL import Image
 from numpy import asarray
 from tqdm import tqdm
+import gdown
+
 
 def load_data(file_name, folder_name=None):
     parent_path = Path(os.getcwd()).parent
@@ -33,14 +35,14 @@ def load_data(file_name, folder_name=None):
     return output
 
 
-def check_file_downloaded(file_name, default_path, download_path):
-    os.chdir(download_path)
-    if os.path.exists(file_name):
-        print(f"File {file_name} exist in {download_path}!")
+def check_file_downloaded(file_name, download_dir):
+    file_path = download_dir / file_name
+    if os.path.exists(file_path):
+        print(f"File {file_name} already exists in {download_dir}.")
+        return True
     else:
-        print(f"File {file_name} doesn't exist in {download_path}!")
-
-    os.chdir(default_path)
+        print(f"File {file_name} doesn't exist in {download_dir}.")
+        return False
 
 
 def extract_zip_file(file_path, download_path, file_name):
@@ -109,3 +111,10 @@ def load_dataframes(file_path, full_sheet_names):
         print(sheet_name)
 
     return data_dfs
+
+
+def download_from_gdrive(file_id, file_name, download_dir, root_dir):
+  if not check_file_downloaded(file_name, download_dir):
+    os.chdir(download_dir)
+    gdown.download(id=file_id, output=file_name)
+    os.chdir(root_dir)

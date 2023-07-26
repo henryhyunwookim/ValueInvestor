@@ -123,10 +123,11 @@ def plot_autocorrelation(df, column, partial):
         plot_acf(df[column]);
 
 
-def plot_bollinger_band(rolling_mean, bollinger_band_window, upper_band, lower_band,
-                        y_test,
+def plot_bollinger_band(rolling_mean, bollinger_band_window, bollinger_band_std,
+                        upper_band, lower_band, y_test,
                         figsize=(12, 4), additional_df=None, xlabel=None, ylabel=None):
-    ax = rolling_mean.plot(label=f'{bollinger_band_window}-day SMA', figsize=figsize)
+    ax = rolling_mean.plot(label=f'{bollinger_band_window}-day SMA += {bollinger_band_std} STD',
+                           figsize=figsize)
     
     ax.fill_between(y_test.index,
                     lower_band,

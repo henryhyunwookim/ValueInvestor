@@ -103,7 +103,8 @@ def get_stats(X_train, X_test, y_train, y_test, model,
 def get_trading_decision_and_results(y, y_test, y_pred, bollinger_band_windows, bollinger_band_stds,
                                      df, initial_balance, initial_no_stock, max_no_stock_to_trade,
                                      daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
-                                     use_pred=False, pred_col='Predicted', print_result=True):
+                                     use_pred=False, pred_error_rate=0.01, pred_col='Predicted',
+                                     print_result=True):
 
     """
     Short term: 10 day moving average, bands at 1.5 standard deviations.
@@ -142,12 +143,13 @@ def get_trading_decision_and_results(y, y_test, y_pred, bollinger_band_windows, 
             # price = df.loc[current_index, 'Price'] 
             trading_price = df.loc[current_index, 'Open']
 
+            predicted_price = df.loc[previous_index, pred_col]
             previous_high = df.loc[previous_index, 'High'] 
             previous_low = df.loc[previous_index, 'Low']
 
             if use_pred:
-                previous_high = df.loc[previous_index, pred_col]
-                previous_low = df.loc[previous_index, pred_col]
+                previous_high = predicted_price * (1 + pred_error_rate)
+                previous_low = predicted_price * (1 - pred_error_rate)
 
             previous_upper = df.loc[previous_index, 'Upper Band']
             previous_lower = df.loc[previous_index, 'Lower Band']
@@ -163,8 +165,8 @@ def get_trading_decision_and_results(y, y_test, y_pred, bollinger_band_windows, 
                 if current_index == last_index:
                     no_stock_to_sell = previous_no_stock
 
-                # Only sell when we won't lose money
-                if (no_stock_to_sell * trading_price) >= 0:
+                # Only sell when we won't lose money (or when it's the last trading date)
+                if (((no_stock_to_sell * trading_price) >= 0) or (current_index == last_index)):
                     if print_result:
                         print(f'Sell {no_stock_to_sell} stock(s) at {trading_price}.')
                     df.loc[current_index, 'Trading Decision'] = 'Sell'
@@ -223,7 +225,10 @@ def get_trading_decision_and_results(y, y_test, y_pred, bollinger_band_windows, 
     return capital_return_df
 
 
-def train_models_and_make_predictions(X_train, y_train, X_test, y_test, random_state):
+def train_models_and_make_predictions(X_train, y_train, X_test, y_test, random_state,
+                                      models=['SARIMAX',
+                                              'RandomForestRegressor',
+                                              'XGBRegressor']):
     result_dfs = []
     for i in tqdm(range(0, len(X_test))):
         new_X_train = pd.concat([X_train, X_test[:i]])
@@ -234,31 +239,34 @@ def train_models_and_make_predictions(X_train, y_train, X_test, y_test, random_s
         result_df = pd.DataFrame(new_y_test)
 
         # Train models and get predictions only for 1 day.
-        sarimax_model = SARIMAX(
-            endog = new_y_train,
-            exog = new_X_train,
-            order = (0, 1, 0),
-            seasonal_order = (0, 0, 0, 0)
-            )
-        results = sarimax_model.fit(disp=False)
-        pred = results.get_prediction(start=new_X_train.shape[0],
-                                    end=new_X_train.shape[0] + new_X_test.shape[0] - 1,
-                                    exog=new_X_test)
-        pred_mean = pred.predicted_mean
-        pred_mean.index = new_X_test.index
-        result_df['SARIMAX'] = pred_mean.values
+        if 'SARIMAX' in models:
+            sarimax_model = SARIMAX(
+                endog = new_y_train,
+                exog = new_X_train,
+                order = (0, 1, 0),
+                seasonal_order = (0, 0, 0, 0)
+                )
+            results = sarimax_model.fit(disp=False)
+            pred = results.get_prediction(start=new_X_train.shape[0],
+                                        end=new_X_train.shape[0] + new_X_test.shape[0] - 1,
+                                        exog=new_X_test)
+            pred_mean = pred.predicted_mean
+            pred_mean.index = new_X_test.index
+            result_df['SARIMAX'] = pred_mean.values
 
-        rf_reg = RandomForestRegressor(max_depth=2, random_state=random_state)
-        rf_reg.fit(new_X_train, new_y_train)
-        rf_pred = rf_reg.predict(new_X_test)
-        rf_pred = pd.Series(rf_pred, index=new_X_test.index)
-        result_df['RandomForestRegressor'] = rf_pred.values
+        if 'RandomForestRegressor' in models:
+            rf_reg = RandomForestRegressor(max_depth=2, random_state=random_state)
+            rf_reg.fit(new_X_train, new_y_train)
+            rf_pred = rf_reg.predict(new_X_test)
+            rf_pred = pd.Series(rf_pred, index=new_X_test.index)
+            result_df['RandomForestRegressor'] = rf_pred.values
 
-        xgb_reg = XGBRegressor(random_state=random_state)
-        xgb_reg.fit(new_X_train, new_y_train)
-        xgb_pred = xgb_reg.predict(new_X_test)
-        xgb_pred = pd.Series(xgb_pred, index=new_X_test.index)
-        result_df['XGBRegressor'] = xgb_pred.values
+        if 'XGBRegressor' in models:
+            xgb_reg = XGBRegressor(random_state=random_state)
+            xgb_reg.fit(new_X_train, new_y_train)
+            xgb_pred = xgb_reg.predict(new_X_test)
+            xgb_pred = pd.Series(xgb_pred, index=new_X_test.index)
+            result_df['XGBRegressor'] = xgb_pred.values
 
         result_dfs.append(result_df)
 

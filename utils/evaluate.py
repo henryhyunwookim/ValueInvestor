@@ -32,7 +32,6 @@ import operator
 
 # Custom function
 from utils.plot import plot_scores
-from utils.predict import get_trading_decision_and_results
 
 
 def update_dicts(clf, X, y, n_splits, n, eval_dict, scores_dict, key, random_state, _type):
@@ -282,45 +281,15 @@ def get_capital_returns(results_dfs, initial_balance=0):
     for interval, df in results_dfs.items():
         last_row = df.iloc[-1]
         capital_return = round(last_row['Balance'] - initial_balance, 4)
-        remaining_stock = last_row['No. of Stock']
-        last_closing_price = last_row['Price']
+        # remaining_stock = last_row['No. of Stock']
+        # last_closing_price = last_row['Price']
         
         capital_return_dict[f'{interval} Trading'] = {'Capital Return': capital_return,
-                                                        'Remaining Stock': remaining_stock,
-                                                        'Last Closing Price': last_closing_price}
+                                                        # 'Remaining Stock': remaining_stock,
+                                                        # 'Last Closing Price': last_closing_price
+                                                        }
 
     capital_return_df = pd.DataFrame.from_dict(capital_return_dict).T
-
-    return capital_return_df
-
-
-def get_capital_return_df(results_df, daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
-                          benchmark_col='20-day SMA',
-                          prediction_col='Predicted',
-                          compare_against_col='Price',
-                          initial_balance=0, initial_no_stock=0, max_no_stock_to_trade=1):
-    # Get df for prediction_col
-    prediction_results_dfs = get_trading_decision_and_results(
-        daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
-        results_df, benchmark_col, prediction_col,
-        initial_balance, initial_no_stock, max_no_stock_to_trade
-    )
-    prediction_df = pd.DataFrame.from_dict(
-        get_capital_returns(prediction_results_dfs), orient='index', columns=[prediction_col]
-        )
-
-    # Get df for compare_against_col
-    compare_results_dfs = get_trading_decision_and_results(
-        daily_trading_dates, weekly_trading_dates, monthly_trading_dates,
-        results_df, benchmark_col, compare_against_col,
-        initial_balance, initial_no_stock, max_no_stock_to_trade
-    )
-    compare_df = pd.DataFrame.from_dict(
-        get_capital_returns(compare_results_dfs), orient='index', columns=[compare_against_col]
-        )
-
-    capital_return_df = pd.concat([prediction_df, compare_df], axis=1)
-    capital_return_df['Difference'] = capital_return_df[prediction_col] - capital_return_df[compare_against_col]
 
     return capital_return_df
 

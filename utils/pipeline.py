@@ -34,7 +34,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, 
 
 from utils.transform import convert_vol_to_float, add_features_from_previous_dates, normalize_scale
 from utils.plot import plot_histograms
-from utils.evaluate import get_trading_decision_and_results
+from utils.predict import get_trading_decision_and_results
 
 
 def process_df(df, bollinger_band_windows, bollinger_band_stds,
