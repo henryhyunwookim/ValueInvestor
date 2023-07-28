@@ -30,6 +30,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from math import sqrt
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, r2_score
 
 from utils.transform import convert_vol_to_float, add_features_from_previous_dates, normalize_scale\
@@ -76,7 +77,7 @@ def process_df(df, sheet_name,
     sarimax_pred = preds_df['SARIMAX']
     sarimax_pred.name = 'Predicted'
     
-    sarimax_mse = mean_squared_error(y_test, sarimax_pred)
+    sarimax_mse = sqrt(mean_squared_error(y_test, sarimax_pred))
     sarimax_mape = mean_absolute_percentage_error(y_test, sarimax_pred)
     sarimax_r2 = r2_score(y_test, sarimax_pred)
     # print(f'''SARIMAX model:

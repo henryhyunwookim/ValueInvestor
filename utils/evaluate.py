@@ -29,6 +29,7 @@ import pandas as pd
 import numpy as np
 import time
 import operator
+from math import sqrt
 
 # Custom function
 from utils.plot import plot_scores
@@ -298,7 +299,7 @@ def evaluate_predictions(y_test, preds_df, keys, plot_df=True):
     if plot_df:
         preds_df.plot(figsize=(12,4));
     eval_list = [[key,
-                  mean_squared_error(y_test, preds_df[key].values),
+                  sqrt(mean_squared_error(y_test, preds_df[key].values)),
                   mean_absolute_percentage_error(y_test, preds_df[key].values),
                   r2_score(y_test, preds_df[key].values)] for key in keys]
     eval_df = pd.DataFrame(eval_list,
