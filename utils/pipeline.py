@@ -77,7 +77,7 @@ def process_df(df, sheet_name,
     sarimax_pred = preds_df['SARIMAX']
     sarimax_pred.name = 'Predicted'
     
-    sarimax_mse = sqrt(mean_squared_error(y_test, sarimax_pred))
+    sarimax_rmse = sqrt(mean_squared_error(y_test, sarimax_pred))
     sarimax_mape = mean_absolute_percentage_error(y_test, sarimax_pred)
     sarimax_r2 = r2_score(y_test, sarimax_pred)
     # print(f'''SARIMAX model:
@@ -86,7 +86,7 @@ def process_df(df, sheet_name,
     # R2 Score: {round(sarimax_r2, 4)}
     # ''')
     eval_df = pd.DataFrame({
-        'Mean Squared Error': round(sarimax_mse, 4),
+        'Root Mean Squared Error': round(sarimax_rmse, 4),
         'Mean Absolute Percentage Error': round(sarimax_mape, 4),
         'R2 Score': round(sarimax_r2, 4)
     }, index=[sheet_name])

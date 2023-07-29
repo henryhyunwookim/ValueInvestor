@@ -303,8 +303,8 @@ def evaluate_predictions(y_test, preds_df, keys, plot_df=True):
                   mean_absolute_percentage_error(y_test, preds_df[key].values),
                   r2_score(y_test, preds_df[key].values)] for key in keys]
     eval_df = pd.DataFrame(eval_list,
-                           columns=['Model', 'Mean Squared Error', 'Mean Absolute Percentage Error', 'R2 Score'])\
-                            .sort_values(['Mean Squared Error', 'Mean Absolute Percentage Error', 'R2 Score'],
+                           columns=['Model', 'Root Mean Squared Error', 'Mean Absolute Percentage Error', 'R2 Score'])\
+                            .sort_values(['Root Mean Squared Error', 'Mean Absolute Percentage Error', 'R2 Score'],
                                          ascending=[True, True, False])
     
     return eval_df
