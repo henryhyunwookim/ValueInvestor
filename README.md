@@ -11,9 +11,11 @@ Our goal is to establish a robust intelligent system to aid our value investing 
 You are given a set of portfolio companies trading data from emerging markets including 2020 Q1-Q2-Q3-Q4 2021 Q1 stock prices. Each company stock is provided in different sheets. Each market's operating days varies based on the country of the company and the market the stocks are exchanged. Use only 2020 data and predict with 2021 Q1 data.
 
 ### <b>Goal</b>
+
 Predict stock price valuations on a daily, weekly and monthly basis. Recommend BUY, HOLD, SELL decisions. Maximize capital returns, minimize losses. Ideally a loss should never happen. Minimize HOLD period.
 
 ### <b> Success Metric</b>
+
 Evaluate on the basis of capital returns. Use Bollinger Bands to measure your systems effectiveness.
 
 ### <b>Notebook and Installation</b>
