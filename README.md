@@ -36,6 +36,8 @@ In future iterations of this project, our primary objective would be to enrich t
 
 ### <b>Notebook and Installation</b>
 
+For more details, you may refer to <a href='https://github.com/henryhyunwookim/ValueInvestor/blob/main/ValueInvestor.ipynb'>this notebook</a> directly.
+
 To run ValueInvestor.ipynb locally, please clone or fork this repo and install the required packages by running the following command:
 
 pip install -r requirements.txt
