@@ -42,4 +42,4 @@ To run ValueInvestor.ipynb locally, please clone or fork this repo and install t
 
 pip install -r requirements.txt
 
-##### Source: Apziva
+##### <i>* Associated with Apziva</i>
